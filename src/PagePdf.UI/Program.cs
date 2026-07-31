@@ -14,7 +14,7 @@ public static class Program
         await using var provider = services.BuildServiceProvider();
 
         var useCase = provider.GetRequiredService<ConvertComicUseCase>();
-        await useCase.ExecuteAsync(new("input.cdz", "output.pdf"));
+        await useCase.ExecuteAsync(new("input.cbz", "output.pdf"));
         return 0;
     }
 }
