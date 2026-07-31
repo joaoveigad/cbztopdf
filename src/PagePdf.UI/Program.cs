@@ -1,20 +1,16 @@
-using Microsoft.Extensions.DependencyInjection;
-using PagePdf.Application.UseCases;
-using PagePdf.Infrastructure.DependencyInjection;
+using Avalonia;
 
 namespace PagePdf.UI;
 
 public static class Program
 {
-    public static async Task<int> Main(string[] args)
-    {
-        var services = new ServiceCollection();
-        services.AddInfrastructure();
-        services.AddScoped<ConvertComicUseCase>();
-        await using var provider = services.BuildServiceProvider();
+    [STAThread]
+    public static void Main(string[] args) => BuildAvaloniaApp()
+        .StartWithClassicDesktopLifetime(args);
 
-        var useCase = provider.GetRequiredService<ConvertComicUseCase>();
-        await useCase.ExecuteAsync(new("input.cbz", "output.pdf"));
-        return 0;
-    }
+    public static AppBuilder BuildAvaloniaApp()
+        => AppBuilder.Configure<App>()
+            .UsePlatformDetect()
+            .WithInterFont()
+            .LogToTrace();
 }
