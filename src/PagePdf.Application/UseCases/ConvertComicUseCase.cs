@@ -20,6 +20,7 @@ public sealed class ConvertComicUseCase
 
     public async Task<ConvertComicResult> ExecuteAsync(
         ConvertComicRequest request,
+        IProgress<int>? progress = null,
         CancellationToken cancellationToken = default)
     {
         Validate(request);
@@ -29,7 +30,7 @@ public sealed class ConvertComicUseCase
         try
         {
             var archive = await _archiveReader.ReadAsync(request.ArchivePath, cancellationToken);
-            await _pdfGenerator.GenerateAsync(archive, request.OutputPath, cancellationToken);
+            await _pdfGenerator.GenerateAsync(archive, request.OutputPath, progress, cancellationToken);
             stopwatch.Stop();
             return new ConvertComicResult(request.OutputPath, archive.PageCount, stopwatch.Elapsed);
         }
