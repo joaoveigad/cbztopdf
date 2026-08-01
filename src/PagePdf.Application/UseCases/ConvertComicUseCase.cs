@@ -29,8 +29,8 @@ public sealed class ConvertComicUseCase
 
         try
         {
-            var archive = await _archiveReader.ReadAsync(request.ArchivePath, cancellationToken);
-            await _pdfGenerator.GenerateAsync(archive, request.OutputPath, progress, cancellationToken);
+            var archive = await _archiveReader.ReadAsync(request.ArchivePath, cancellationToken);  // src/PagePdf.Infrastructure/Services/ZipComicArchiveReader.cs
+            await _pdfGenerator.GenerateAsync(archive, request.OutputPath, progress, cancellationToken); //src/PagePdf.Infrastructure/Services/PdfSharpPdfGenerator.cs
             stopwatch.Stop();
             return new ConvertComicResult(request.OutputPath, archive.PageCount, stopwatch.Elapsed);
         }
