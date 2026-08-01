@@ -19,4 +19,8 @@
     <ProjectReference Include="..\PagePdf.Infrastructure\PagePdf.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="PagePdf.UI.Tests" />
+  </ItemGroup>
+
 </Project>

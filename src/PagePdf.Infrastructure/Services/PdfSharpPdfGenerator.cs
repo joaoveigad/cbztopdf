@@ -79,7 +79,7 @@ public sealed class PdfSharpPdfGenerator : IPdfGenerator
                     graphics.DrawImage(image, 0, 0, image.PixelWidth, image.PixelHeight);
                 }
 
-                progress?.Report(i + 1);
+                progress?.Report((int)Math.Round((i + 1) * 100.0 / archive.Pages.Count));
             }
 
             cancellationToken.ThrowIfCancellationRequested();

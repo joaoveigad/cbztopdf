@@ -1,13 +1,165 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
         x:Class="PagePdf.UI.MainWindow"
         Title="PagePdf"
-        Width="640"
-        Height="480"
-        WindowStartupLocation="CenterScreen">
-  <DockPanel>
-    <Menu DockPanel.Dock="Top">
-      <MenuItem Name="FileMenu" Header="File" />
-    </Menu>
-  </DockPanel>
+        Width="720"
+        Height="520"
+        MinWidth="560"
+        MinHeight="420"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        DragDrop.AllowDrop="True"
+        DragDrop.DragOver="OnDragOver"
+        DragDrop.Drop="OnDrop">
+
+	<DockPanel>
+
+		<Border DockPanel.Dock="Top"
+                Background="#000000"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+
+			<Menu Background="Transparent"
+                  Foreground="#FFFFFF"
+                  Padding="4,2">
+
+				<MenuItem Name="FileMenu" Header="File">
+					<MenuItem Name="OpenMenuItem"
+                              Header="Open..."
+                              Click="OpenMenuItem_Click"
+                              InputGesture="Ctrl+O" />
+					<MenuItem Name="ExportMenuItem"
+                              Header="Export PDF..."
+                              Click="ExportMenuItem_Click"
+                              InputGesture="Ctrl+E"
+                              IsEnabled="False" />
+					<Separator />
+					<MenuItem Name="ExitMenuItem"
+                              Header="Exit"
+                              Click="ExitMenuItem_Click"
+                              InputGesture="Alt+F4" />
+				</MenuItem>
+
+			</Menu>
+
+		</Border>
+
+		<Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource StatusBarBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,6">
+			<DockPanel>
+				<TextBlock Name="StatusText"
+                           DockPanel.Dock="Left"
+                           Text="Ready"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="12" />
+
+				<ProgressBar Name="ProgressBar"
+                             DockPanel.Dock="Right"
+                             Minimum="0"
+                             Maximum="100"
+                             Value="0"
+                             Height="6"
+                             Width="180"
+                             VerticalAlignment="Center"
+                             ShowProgressText="False" />
+			</DockPanel>
+		</Border>
+
+		<ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+
+			<StackPanel MaxWidth="560"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="28"
+                        Margin="48,40">
+
+				<StackPanel Spacing="8"
+                            HorizontalAlignment="Center">
+
+					<TextBlock Text="PagePdf"
+                               FontSize="28"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               HorizontalAlignment="Center" />
+
+					<TextBlock Text="Convert .cbz comic archives to PDF"
+                               FontSize="14"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center" />
+
+				</StackPanel>
+
+				<Border Name="DropZoneBorder"
+                        Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1.5"
+                        CornerRadius="16"
+                        Padding="36,44">
+
+					<StackPanel Spacing="20"
+                                HorizontalAlignment="Center">
+
+						<Border Width="72"
+                                Height="72"
+                                CornerRadius="16"
+                                Background="{DynamicResource AccentSoftBrush}"
+                                HorizontalAlignment="Center">
+
+							<TextBlock Text="CBZ"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+
+						</Border>
+
+						<TextBlock Name="DropTitleText"
+                                   Text="Drop a .cbz file here"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Center" />
+
+						<TextBlock Name="DropSubtitleText"
+                                   Text="or select one from your computer"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,-12,0,0" />
+
+						<StackPanel Orientation="Horizontal"
+                                    Spacing="12"
+                                    HorizontalAlignment="Center">
+
+							<Button Name="OpenButton"
+                                    Classes="primary"
+                                    Content="Open..."
+                                    Click="OpenButton_Click" />
+
+						</StackPanel>
+
+					</StackPanel>
+
+				</Border>
+
+				<TextBlock Text="The output PDF keeps the original page order and image quality."
+                           FontSize="12"
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           HorizontalAlignment="Center" />
+
+			</StackPanel>
+
+		</ScrollViewer>
+
+	</DockPanel>
+
 </Window>

@@ -16,10 +16,10 @@ public sealed class FakePdfGenerator : IPdfGenerator
         CancellationToken cancellationToken = default)
     {
         _reportCount = 0;
-        foreach (var _ in archive.Pages)
+        for (var i = 0; i < archive.Pages.Count; i++)
         {
             _reportCount++;
-            progress?.Report(_reportCount);
+            progress?.Report((int)Math.Round(_reportCount * 100.0 / archive.Pages.Count));
         }
 
         return Task.CompletedTask;

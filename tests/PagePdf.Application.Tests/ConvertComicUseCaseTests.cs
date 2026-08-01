@@ -38,7 +38,7 @@ public class ConvertComicUseCaseTests
 
             Assert.Equal(3, result.PageCount);
             Assert.Equal(3, generator.ReportCount);
-            Assert.Equal(new[] { 1, 2, 3 }, reported);
+            Assert.Equal(new[] { 33, 67, 100 }, reported);
         }
         finally
         {

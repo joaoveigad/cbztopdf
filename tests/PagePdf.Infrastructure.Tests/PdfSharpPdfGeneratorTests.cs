@@ -68,7 +68,7 @@ public class PdfSharpPdfGeneratorTests
 
             await _generator.GenerateAsync(archive, outputPath, progress);
 
-            Assert.Equal(new[] { 1, 2, 3 }, reported);
+            Assert.Equal(new[] { 33, 67, 100 }, reported);
         }
         finally
         {
