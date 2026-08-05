@@ -53,22 +53,37 @@
                 BorderThickness="0,1,0,0"
                 Padding="12,6">
 			<DockPanel>
-				<TextBlock Name="StatusText"
-                           DockPanel.Dock="Left"
-                           Text="Ready"
-                           VerticalAlignment="Center"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           FontSize="12" />
+				<DockPanel DockPanel.Dock="Top">
+					<TextBlock Name="StatusText"
+                               DockPanel.Dock="Left"
+                               Text="Ready"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="12" />
 
-				<ProgressBar Name="ProgressBar"
-                             DockPanel.Dock="Right"
-                             Minimum="0"
-                             Maximum="100"
-                             Value="0"
-                             Height="6"
-                             Width="180"
-                             VerticalAlignment="Center"
-                             ShowProgressText="False" />
+					<ProgressBar Name="ProgressBar"
+                                 DockPanel.Dock="Right"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="0"
+                                 Height="6"
+                                 Width="180"
+                                 VerticalAlignment="Center"
+                                 ShowProgressText="False" />
+				</DockPanel>
+
+				<ItemsControl Name="QueueList"
+                              Margin="0,4,0,0"
+                              FontSize="12"
+                              IsVisible="False">
+					<ItemsControl.ItemTemplate>
+						<DataTemplate>
+							<TextBlock Text="{Binding}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" />
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
 			</DockPanel>
 		</Border>
 
@@ -130,7 +145,7 @@
                                    HorizontalAlignment="Center" />
 
 						<TextBlock Name="DropSubtitleText"
-                                   Text="or select one from your computer"
+                                   Text="or select one or more from your computer"
                                    FontSize="13"
                                    Foreground="{DynamicResource TextMutedBrush}"
                                    HorizontalAlignment="Center"

@@ -45,8 +45,54 @@ public class MainWindowTests
 
             var export = window.FindControl<MenuItem>("ExportMenuItem");
             Assert.True(export!.IsEnabled);
-            Assert.Equal($"Selected: {Path.GetFileName(tempCbz)}",
+            Assert.True(window.FindControl<Button>("ConvertButton")!.IsEnabled);
+            Assert.Equal("1 file queued",
                 window.FindControl<TextBlock>("StatusText")!.Text);
+        }
+        finally
+        {
+            File.Delete(tempCbz);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task MainWindow_select_multiple_archives_queues_all()
+    {
+        var window = new MainWindow(CreateUseCase(1));
+        var tempCbz1 = CreateTempCbz();
+        var tempCbz2 = CreateTempCbz();
+
+        try
+        {
+            await window.SelectArchivesAsync([tempCbz1, tempCbz2]);
+
+            var queue = window.FindControl<ItemsControl>("QueueList");
+            Assert.NotNull(queue);
+            Assert.True(queue!.IsVisible);
+            Assert.Equal(2, queue.Items?.Count);
+            Assert.True(window.FindControl<Button>("ConvertButton")!.IsEnabled);
+            Assert.Equal("2 files queued",
+                window.FindControl<TextBlock>("StatusText")!.Text);
+        }
+        finally
+        {
+            File.Delete(tempCbz1);
+            File.Delete(tempCbz2);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task MainWindow_select_same_archive_does_not_duplicate()
+    {
+        var window = new MainWindow(CreateUseCase(1));
+        var tempCbz = CreateTempCbz();
+
+        try
+        {
+            await window.SelectArchivesAsync([tempCbz, tempCbz]);
+
+            var queue = window.FindControl<ItemsControl>("QueueList");
+            Assert.Equal(1, queue!.Items?.Count);
         }
         finally
         {
@@ -116,6 +162,32 @@ public class MainWindowTests
             Assert.Contains(errors, e => e.StartsWith("Conversion failed:"));
             Assert.Contains("failed", window.FindControl<TextBlock>("StatusText")!.Text);
             Assert.True(window.FindControl<Button>("OpenButton")!.IsEnabled);
+        }
+        finally
+        {
+            File.Delete(tempCbz);
+            File.Delete(outputPdf);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task MainWindow_convert_keeps_items_in_queue_with_done_status()
+    {
+        var tempCbz = CreateTempCbz();
+        var outputPdf = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.pdf");
+
+        try
+        {
+            var window = new MainWindow(CreateUseCase(1));
+            await window.SelectArchiveAsync(tempCbz);
+            await window.ConvertAsync(outputPdf);
+
+            var queue = window.FindControl<ItemsControl>("QueueList")!;
+            Assert.True(queue.IsVisible);
+            Assert.Equal(1, queue.Items?.Count);
+            Assert.Contains("→ done", (queue.Items![0] as string)!);
+            Assert.Contains("Done", window.FindControl<TextBlock>("StatusText")!.Text);
+            Assert.False(window.FindControl<Button>("ConvertButton")!.IsEnabled);
         }
         finally
         {

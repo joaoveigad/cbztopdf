@@ -12,7 +12,7 @@ namespace PagePdf.UI;
 public partial class MainWindow : Window
 {
     private readonly ConvertComicUseCase _useCase;
-    private string? _selectedArchive;
+    private readonly List<QueueItem> _queue = [];
     private bool _isConverting;
 
     internal Func<string, string, Task> ShowError { get; set; } = default!;
@@ -39,10 +39,10 @@ public partial class MainWindow : Window
     }
 
     private async void OpenMenuItem_Click(object? sender, RoutedEventArgs e)
-        => await OpenArchiveAsync();
+        => await OpenArchivesAsync();
 
     private async void OpenButton_Click(object? sender, RoutedEventArgs e)
-        => await OpenArchiveAsync();
+        => await OpenArchivesAsync();
 
     private async void ExportMenuItem_Click(object? sender, RoutedEventArgs e)
         => await ExportAsync();
@@ -59,22 +59,19 @@ public partial class MainWindow : Window
 
     private async void OnDrop(object? sender, DragEventArgs e)
     {
-        var file = e.DataTransfer.TryGetFile();
-        if (file is null)
-        {
-            return;
-        }
+        var paths = e.DataTransfer.TryGetFiles()
+            ?.Select(f => f.TryGetLocalPath())
+            .Where(p => p is not null)
+            .Select(p => p!)
+            .ToList();
 
-        var path = file.TryGetLocalPath();
-        if (path is null)
+        if (paths is { Count: > 0 })
         {
-            return;
+            await SelectArchivesAsync(paths);
         }
-
-        await SelectArchiveAsync(path);
     }
 
-    private async Task OpenArchiveAsync()
+    private async Task OpenArchivesAsync()
     {
         if (_isConverting)
         {
@@ -89,8 +86,8 @@ public partial class MainWindow : Window
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Select a .cbz comic archive",
-            AllowMultiple = false,
+            Title = "Select .cbz comic archives",
+            AllowMultiple = true,
             FileTypeFilter =
             [
                 new FilePickerFileType("Comic archives") { Patterns = ["*.cbz"] },
@@ -98,29 +95,69 @@ public partial class MainWindow : Window
             ],
         });
 
-        var path = files.FirstOrDefault()?.TryGetLocalPath();
-        if (path is not null)
+        var paths = files.Select(f => f.TryGetLocalPath())
+            .Where(p => p is not null)
+            .Select(p => p!)
+            .ToList();
+
+        if (paths.Count > 0)
         {
-            await SelectArchiveAsync(path);
+            await SelectArchivesAsync(paths);
         }
     }
 
     internal async Task SelectArchiveAsync(string archivePath)
+        => await SelectArchivesAsync([archivePath]);
+
+    internal async Task SelectArchivesAsync(IEnumerable<string> archivePaths)
     {
-        if (!File.Exists(archivePath))
+        if (_isConverting)
         {
-            await ShowError("File not found", $"The selected file was not found:\n{archivePath}");
             return;
         }
 
-        _selectedArchive = archivePath;
-        var fileName = Path.GetFileName(archivePath);
-        DropTitleText.Text = fileName;
-        DropSubtitleText.Text = "click Export PDF... to convert it";
+        var added = false;
+        foreach (var archivePath in archivePaths)
+        {
+            if (!File.Exists(archivePath))
+            {
+                await ShowError("File not found", $"The selected file was not found:\n{archivePath}");
+                continue;
+            }
+
+            if (_queue.Any(item => item.ArchivePath == archivePath))
+            {
+                continue;
+            }
+
+            _queue.Add(new QueueItem(archivePath));
+            added = true;
+        }
+
+        if (!added)
+        {
+            return;
+        }
+
+        RefreshQueueUi();
         SetBusy(false);
-        StatusText.Text = $"Selected: {fileName}";
         ProgressBar.Value = 0;
+        StatusText.Text = PendingCount() == 1 ? "1 file queued" : $"{PendingCount()} files queued";
     }
+
+    private void RefreshQueueUi()
+    {
+        QueueList.ItemsSource = _queue
+            .Select(item => $"{item.FileName} → {item.Status}")
+            .ToList();
+        QueueList.IsVisible = _queue.Count > 0;
+    }
+
+    private int PendingCount()
+        => _queue.Count(item => item.Status != "done");
+
+    private bool HasPendingWork()
+        => PendingCount() > 0;
 
     private async Task ExportAsync()
     {
@@ -129,14 +166,16 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_selectedArchive is null)
+        if (!HasPendingWork())
         {
-            await OpenArchiveAsync();
-            if (_selectedArchive is null)
+            await OpenArchivesAsync();
+            if (!HasPendingWork())
             {
                 return;
             }
         }
+
+        var pending = _queue.Where(item => item.Status != "done").ToList();
 
         var topLevel = GetTopLevel(this);
         if (topLevel is null)
@@ -144,57 +183,121 @@ public partial class MainWindow : Window
             return;
         }
 
-        var defaultName = Path.GetFileNameWithoutExtension(_selectedArchive) + ".pdf";
-        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Export PDF as",
-            SuggestedFileName = defaultName,
-            DefaultExtension = "pdf",
-            FileTypeChoices =
-            [
-                new FilePickerFileType("PDF documents") { Patterns = ["*.pdf"] },
-            ],
-        });
+        string? folder = null;
+        string? singleOutput = null;
 
-        var outputPath = file?.TryGetLocalPath();
-        if (outputPath is null)
+        if (pending.Count == 1)
+        {
+            var defaultName = Path.GetFileNameWithoutExtension(pending[0].ArchivePath) + ".pdf";
+            var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Export PDF as",
+                SuggestedFileName = defaultName,
+                DefaultExtension = "pdf",
+                FileTypeChoices =
+                [
+                    new FilePickerFileType("PDF documents") { Patterns = ["*.pdf"] },
+                ],
+            });
+
+            singleOutput = file?.TryGetLocalPath();
+            if (singleOutput is null)
+            {
+                return;
+            }
+        }
+        else
+        {
+            var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "Select output folder",
+                AllowMultiple = false,
+            });
+
+            folder = folders.FirstOrDefault()?.TryGetLocalPath();
+            if (folder is null)
+            {
+                return;
+            }
+        }
+
+        await ConvertAllAsync(folder, singleOutput);
+    }
+
+    internal async Task ConvertAsync(string outputPath)
+    {
+        if (_isConverting || !HasPendingWork())
         {
             return;
         }
 
-        await ConvertAsync(outputPath);
+        await ConvertAllAsync(folder: null, singleOutput: outputPath);
     }
 
-    internal async Task ConvertAsync(string outputPath)
+    private async Task ConvertAllAsync(string? folder, string? singleOutput)
     {
         _isConverting = true;
         SetBusy(true);
         ProgressBar.Value = 0;
 
+        var pending = _queue.Where(item => item.Status != "done").ToList();
+        var total = pending.Count;
+        var processed = 0;
+
         try
         {
-            var progress = new Progress<int>(value =>
+            if (total == 0)
             {
-                ProgressBar.Value = value;
-                StatusText.Text = $"Converting... {value}%";
-            });
+                return;
+            }
 
-            var result = await Task.Run(() => _useCase.ExecuteAsync(
-                new ConvertComicRequest(_selectedArchive!, outputPath),
-                progress));
+            for (var i = 0; i < total; i++)
+            {
+                var item = pending[i];
+                var fileName = item.FileName;
+                var outputPath = singleOutput
+                    ?? Path.Combine(folder!, Path.GetFileNameWithoutExtension(item.ArchivePath) + ".pdf");
 
-            ProgressBar.Value = result.PageCount > 0 ? 100 : 0;
-            StatusText.Text = $"Done — {result.PageCount} pages in {result.Elapsed.TotalSeconds:F1}s";
-        }
-        catch (Exception ex)
-        {
-            await ShowError("Conversion failed", ex.Message);
-            StatusText.Text = "Conversion failed";
+                item.Status = "converting";
+                RefreshQueueUi();
+                StatusText.Text = $"Converting {fileName} ({i + 1}/{total})...";
+                ProgressBar.Value = 0;
+
+                var progress = new Progress<int>(value =>
+                    StatusText.Text = $"Converting {fileName} ({i + 1}/{total})... {value}%");
+
+                try
+                {
+                    await Task.Run(() => _useCase.ExecuteAsync(
+                        new ConvertComicRequest(item.ArchivePath, outputPath),
+                        progress));
+
+                    item.Status = "done";
+                    processed++;
+                }
+                catch (Exception ex)
+                {
+                    item.Status = "failed";
+                    await ShowError("Conversion failed", $"{fileName}:\n{ex.Message}");
+                    StatusText.Text = $"Conversion failed at {fileName}";
+                    ProgressBar.Value = 0;
+                    break;
+                }
+
+                RefreshQueueUi();
+            }
+
+            if (processed == total)
+            {
+                StatusText.Text = $"Done — {processed} file(s) converted";
+                ProgressBar.Value = 100;
+            }
         }
         finally
         {
             _isConverting = false;
             SetBusy(false);
+            RefreshQueueUi();
         }
     }
 
@@ -202,8 +305,9 @@ public partial class MainWindow : Window
     {
         OpenButton.IsEnabled = !busy;
         OpenMenuItem.IsEnabled = !busy;
-        ExportMenuItem.IsEnabled = !busy && _selectedArchive is not null;
-        ConvertButton.IsEnabled = !busy && _selectedArchive is not null;
+        var hasPending = HasPendingWork();
+        ExportMenuItem.IsEnabled = !busy && hasPending;
+        ConvertButton.IsEnabled = !busy && hasPending;
     }
 
     private async Task ShowErrorAsync(string title, string message)
@@ -232,5 +336,14 @@ public partial class MainWindow : Window
         };
 
         await dialog.ShowDialog(this);
+    }
+
+    private sealed class QueueItem(string archivePath)
+    {
+        public string ArchivePath { get; } = archivePath;
+
+        public string FileName => Path.GetFileName(ArchivePath);
+
+        public string Status { get; set; } = "queued";
     }
 }
