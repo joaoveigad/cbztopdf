@@ -69,7 +69,7 @@
 				<StackPanel Spacing="8"
                             HorizontalAlignment="Center">
 
-					<TextBlock Text="PagePdf"
+					<TextBlock Text="CBZ to PDF Converter"
                                FontSize="28"
                                FontWeight="Bold"
                                Foreground="{DynamicResource TextPrimaryBrush}"
