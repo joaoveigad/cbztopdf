@@ -117,7 +117,7 @@ public partial class MainWindow : Window
         var fileName = Path.GetFileName(archivePath);
         DropTitleText.Text = fileName;
         DropSubtitleText.Text = "click Export PDF... to convert it";
-        ExportMenuItem.IsEnabled = true;
+        SetBusy(false);
         StatusText.Text = $"Selected: {fileName}";
         ProgressBar.Value = 0;
     }
@@ -203,6 +203,7 @@ public partial class MainWindow : Window
         OpenButton.IsEnabled = !busy;
         OpenMenuItem.IsEnabled = !busy;
         ExportMenuItem.IsEnabled = !busy && _selectedArchive is not null;
+        ConvertButton.IsEnabled = !busy && _selectedArchive is not null;
     }
 
     private async Task ShowErrorAsync(string title, string message)

@@ -142,8 +142,13 @@
 
 							<Button Name="OpenButton"
                                     Classes="primary"
-                                    Content="Open..."
+                                    Content="Open"
                                     Click="OpenButton_Click" />
+									<Button Name="ConvertButton"
+                                            Classes="primary"
+                                            Content="Convert"
+                                            IsEnabled="False"
+                                            Click="ExportMenuItem_Click" />
 
 						</StackPanel>
 
