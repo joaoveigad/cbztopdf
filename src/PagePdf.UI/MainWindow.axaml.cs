@@ -38,17 +38,11 @@ public partial class MainWindow : Window
         return provider.GetRequiredService<ConvertComicUseCase>();
     }
 
-    private async void OpenMenuItem_Click(object? sender, RoutedEventArgs e)
-        => await OpenArchivesAsync();
-
     private async void OpenButton_Click(object? sender, RoutedEventArgs e)
         => await OpenArchivesAsync();
 
-    private async void ExportMenuItem_Click(object? sender, RoutedEventArgs e)
+    private async void ConvertButton_Click(object? sender, RoutedEventArgs e)
         => await ExportAsync();
-
-    private void ExitMenuItem_Click(object? sender, RoutedEventArgs e)
-        => Close();
 
     private void OnDragOver(object? sender, DragEventArgs e)
     {
@@ -304,9 +298,7 @@ public partial class MainWindow : Window
     private void SetBusy(bool busy)
     {
         OpenButton.IsEnabled = !busy;
-        OpenMenuItem.IsEnabled = !busy;
         var hasPending = HasPendingWork();
-        ExportMenuItem.IsEnabled = !busy && hasPending;
         ConvertButton.IsEnabled = !busy && hasPending;
     }
 

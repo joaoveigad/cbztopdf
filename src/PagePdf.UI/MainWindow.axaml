@@ -17,36 +17,6 @@
 
 	<DockPanel>
 
-		<Border DockPanel.Dock="Top"
-                Background="#000000"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1">
-
-			<Menu Background="Transparent"
-                  Foreground="#FFFFFF"
-                  Padding="4,2">
-
-				<MenuItem Name="FileMenu" Header="File">
-					<MenuItem Name="OpenMenuItem"
-                              Header="Open..."
-                              Click="OpenMenuItem_Click"
-                              InputGesture="Ctrl+O" />
-					<MenuItem Name="ExportMenuItem"
-                              Header="Export PDF..."
-                              Click="ExportMenuItem_Click"
-                              InputGesture="Ctrl+E"
-                              IsEnabled="False" />
-					<Separator />
-					<MenuItem Name="ExitMenuItem"
-                              Header="Exit"
-                              Click="ExitMenuItem_Click"
-                              InputGesture="Alt+F4" />
-				</MenuItem>
-
-			</Menu>
-
-		</Border>
-
 		<Border DockPanel.Dock="Bottom"
                 Background="{DynamicResource StatusBarBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
@@ -163,7 +133,7 @@
                                             Classes="primary"
                                             Content="Convert"
                                             IsEnabled="False"
-                                            Click="ExportMenuItem_Click" />
+                                            Click="ConvertButton_Click" />
 
 						</StackPanel>
 

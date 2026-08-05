@@ -12,25 +12,12 @@ namespace PagePdf.UI.Tests;
 public class MainWindowTests
 {
     [AvaloniaFact]
-    public void MainWindow_has_file_menu()
+    public void MainWindow_has_open_and_convert_buttons()
     {
         var window = new MainWindow(CreateUseCase(1));
 
-        var fileMenu = window.FindControl<MenuItem>("FileMenu");
-
-        Assert.NotNull(fileMenu);
-        Assert.Equal("File", fileMenu!.Header?.ToString());
-    }
-
-    [AvaloniaFact]
-    public void MainWindow_has_open_export_and_exit_items()
-    {
-        var window = new MainWindow(CreateUseCase(1));
-
-        Assert.NotNull(window.FindControl<MenuItem>("OpenMenuItem"));
-        Assert.NotNull(window.FindControl<MenuItem>("ExportMenuItem"));
-        Assert.NotNull(window.FindControl<MenuItem>("ExitMenuItem"));
         Assert.NotNull(window.FindControl<Button>("OpenButton"));
+        Assert.NotNull(window.FindControl<Button>("ConvertButton"));
     }
 
     [AvaloniaFact]
@@ -43,8 +30,6 @@ public class MainWindowTests
         {
             await window.SelectArchiveAsync(tempCbz);
 
-            var export = window.FindControl<MenuItem>("ExportMenuItem");
-            Assert.True(export!.IsEnabled);
             Assert.True(window.FindControl<Button>("ConvertButton")!.IsEnabled);
             Assert.Equal("1 file queued",
                 window.FindControl<TextBlock>("StatusText")!.Text);
@@ -114,7 +99,7 @@ public class MainWindowTests
         await window.SelectArchiveAsync(Path.Combine(Path.GetTempPath(), "missing.cbz"));
 
         Assert.Contains(errors, e => e.StartsWith("File not found:"));
-        Assert.False(window.FindControl<MenuItem>("ExportMenuItem")!.IsEnabled);
+        Assert.False(window.FindControl<Button>("ConvertButton")!.IsEnabled);
     }
 
     [AvaloniaFact]
