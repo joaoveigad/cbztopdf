@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -53,13 +54,23 @@ public partial class MainWindow : Window
 
     private async void OnDrop(object? sender, DragEventArgs e)
     {
-        var paths = e.DataTransfer.TryGetFiles()
-            ?.Select(f => f.TryGetLocalPath())
-            .Where(p => p is not null)
-            .Select(p => p!)
-            .ToList();
+        var files = e.DataTransfer.TryGetFiles();
+        if (files is null)
+        {
+            return;
+        }
 
-        if (paths is { Count: > 0 })
+        var paths = new List<string>();
+        foreach (var file in files)
+        {
+            var path = file.TryGetLocalPath();
+            if (path is not null)
+            {
+                paths.Add(path);
+            }
+        }
+
+        if (paths.Count > 0)
         {
             await SelectArchivesAsync(paths);
         }
@@ -89,10 +100,15 @@ public partial class MainWindow : Window
             ],
         });
 
-        var paths = files.Select(f => f.TryGetLocalPath())
-            .Where(p => p is not null)
-            .Select(p => p!)
-            .ToList();
+        var paths = new List<string>();
+        for (var i = 0; i < files.Count; i++)
+        {
+            var path = files[i].TryGetLocalPath();
+            if (path is not null)
+            {
+                paths.Add(path);
+            }
+        }
 
         if (paths.Count > 0)
         {
@@ -119,7 +135,17 @@ public partial class MainWindow : Window
                 continue;
             }
 
-            if (_queue.Any(item => item.ArchivePath == archivePath))
+            var alreadyQueued = false;
+            for (var i = 0; i < _queue.Count; i++)
+            {
+                if (_queue[i].ArchivePath == archivePath)
+                {
+                    alreadyQueued = true;
+                    break;
+                }
+            }
+
+            if (alreadyQueued)
             {
                 continue;
             }
@@ -134,21 +160,85 @@ public partial class MainWindow : Window
         }
 
         RefreshQueueUi();
-        SetBusy(false);
-        ProgressBar.Value = 0;
-        StatusText.Text = PendingCount() == 1 ? "1 file queued" : $"{PendingCount()} files queued";
+        UpdateQueueStatus();
     }
+
+    internal void RemoveArchiveFromQueue(string archivePath)
+    {
+        if (_isConverting)
+        {
+            return;
+        }
+
+        _queue.RemoveAll(item => item.ArchivePath == archivePath);
+        RefreshQueueUi();
+        UpdateQueueStatus();
+    }
+
+    internal void ClearQueue()
+    {
+        if (_isConverting)
+        {
+            return;
+        }
+
+        _queue.Clear();
+        RefreshQueueUi();
+        UpdateQueueStatus();
+    }
+
+    private void RemoveQueueItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: QueueItem item })
+        {
+            RemoveArchiveFromQueue(item.ArchivePath);
+        }
+    }
+
+    private void ClearQueueButton_Click(object? sender, RoutedEventArgs e)
+        => ClearQueue();
 
     private void RefreshQueueUi()
     {
-        QueueList.ItemsSource = _queue
-            .Select(item => $"{item.FileName} → {item.Status}")
-            .ToList();
-        QueueList.IsVisible = _queue.Count > 0;
+        QueueList.ItemsSource = new List<QueueItem>(_queue);
+        QueuePanel.IsVisible = _queue.Count > 0;
+        SetBusy(_isConverting);
+    }
+
+    private void UpdateQueueStatus()
+    {
+        StatusText.Text = _queue.Count == 0
+            ? "Ready"
+            : PendingCount() == 1 ? "1 file queued" : $"{PendingCount()} files queued";
     }
 
     private int PendingCount()
-        => _queue.Count(item => item.Status != "done");
+    {
+        var count = 0;
+        for (var i = 0; i < _queue.Count; i++)
+        {
+            if (_queue[i].Status != "done")
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private List<QueueItem> GetPendingItems()
+    {
+        var pending = new List<QueueItem>();
+        for (var i = 0; i < _queue.Count; i++)
+        {
+            if (_queue[i].Status != "done")
+            {
+                pending.Add(_queue[i]);
+            }
+        }
+
+        return pending;
+    }
 
     private bool HasPendingWork()
         => PendingCount() > 0;
@@ -169,7 +259,7 @@ public partial class MainWindow : Window
             }
         }
 
-        var pending = _queue.Where(item => item.Status != "done").ToList();
+        var pending = GetPendingItems();
 
         var topLevel = GetTopLevel(this);
         if (topLevel is null)
@@ -208,7 +298,7 @@ public partial class MainWindow : Window
                 AllowMultiple = false,
             });
 
-            folder = folders.FirstOrDefault()?.TryGetLocalPath();
+            folder = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
             if (folder is null)
             {
                 return;
@@ -234,7 +324,7 @@ public partial class MainWindow : Window
         SetBusy(true);
         ProgressBar.Value = 0;
 
-        var pending = _queue.Where(item => item.Status != "done").ToList();
+        var pending = GetPendingItems();
         var total = pending.Count;
         var processed = 0;
 
@@ -298,8 +388,8 @@ public partial class MainWindow : Window
     private void SetBusy(bool busy)
     {
         OpenButton.IsEnabled = !busy;
-        var hasPending = HasPendingWork();
-        ConvertButton.IsEnabled = !busy && hasPending;
+        ClearQueueButton.IsEnabled = !busy && _queue.Count > 0;
+        ConvertButton.IsEnabled = !busy && HasPendingWork();
     }
 
     private async Task ShowErrorAsync(string title, string message)
@@ -330,12 +420,44 @@ public partial class MainWindow : Window
         await dialog.ShowDialog(this);
     }
 
-    private sealed class QueueItem(string archivePath)
+    internal sealed class QueueItem(string archivePath) : INotifyPropertyChanged
     {
+        private string _status = "queued";
+
         public string ArchivePath { get; } = archivePath;
 
         public string FileName => Path.GetFileName(ArchivePath);
 
-        public string Status { get; set; } = "queued";
+        public string Status
+        {
+            get => _status;
+            set
+            {
+                if (_status == value)
+                {
+                    return;
+                }
+
+                _status = value;
+                OnPropertyChanged(nameof(Status));
+                OnPropertyChanged(nameof(IsQueued));
+                OnPropertyChanged(nameof(IsDone));
+                OnPropertyChanged(nameof(IsFailed));
+                OnPropertyChanged(nameof(IsConverting));
+            }
+        }
+
+        public bool IsQueued => Status == "queued";
+
+        public bool IsDone => Status == "done";
+
+        public bool IsFailed => Status == "failed";
+
+        public bool IsConverting => Status == "converting";
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private void OnPropertyChanged(string propertyName)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

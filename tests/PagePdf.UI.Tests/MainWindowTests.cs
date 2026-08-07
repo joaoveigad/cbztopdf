@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.VisualTree;
 using PagePdf.Application.DTOs;
 using PagePdf.Application.Interfaces;
 using PagePdf.Application.UseCases;
@@ -170,7 +171,8 @@ public class MainWindowTests
             var queue = window.FindControl<ItemsControl>("QueueList")!;
             Assert.True(queue.IsVisible);
             Assert.Equal(1, queue.Items?.Count);
-            Assert.Contains("→ done", (queue.Items![0] as string)!);
+            var item = Assert.IsType<MainWindow.QueueItem>(queue.Items![0]);
+            Assert.Equal("done", item.Status);
             Assert.Contains("Done", window.FindControl<TextBlock>("StatusText")!.Text);
             Assert.False(window.FindControl<Button>("ConvertButton")!.IsEnabled);
         }
@@ -178,6 +180,84 @@ public class MainWindowTests
         {
             File.Delete(tempCbz);
             File.Delete(outputPdf);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task MainWindow_remove_archive_removes_item_from_queue()
+    {
+        var window = new MainWindow(CreateUseCase(1));
+        var tempCbz1 = CreateTempCbz();
+        var tempCbz2 = CreateTempCbz();
+
+        try
+        {
+            await window.SelectArchivesAsync([tempCbz1, tempCbz2]);
+
+            window.RemoveArchiveFromQueue(tempCbz1);
+
+            var queue = window.FindControl<ItemsControl>("QueueList")!;
+            Assert.Equal(1, queue.Items?.Count);
+            Assert.Equal("1 file queued",
+                window.FindControl<TextBlock>("StatusText")!.Text);
+            Assert.True(window.FindControl<Button>("ConvertButton")!.IsEnabled);
+        }
+        finally
+        {
+            File.Delete(tempCbz1);
+            File.Delete(tempCbz2);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task MainWindow_clear_queue_removes_all_items()
+    {
+        var window = new MainWindow(CreateUseCase(1));
+        var tempCbz1 = CreateTempCbz();
+        var tempCbz2 = CreateTempCbz();
+
+        try
+        {
+            await window.SelectArchivesAsync([tempCbz1, tempCbz2]);
+
+            window.ClearQueue();
+
+            var queue = window.FindControl<ItemsControl>("QueueList")!;
+            Assert.Equal(0, queue.Items?.Count);
+            Assert.False(window.FindControl<StackPanel>("QueuePanel")!.IsVisible);
+            Assert.Equal("Ready", window.FindControl<TextBlock>("StatusText")!.Text);
+            Assert.False(window.FindControl<Button>("ConvertButton")!.IsEnabled);
+        }
+        finally
+        {
+            File.Delete(tempCbz1);
+            File.Delete(tempCbz2);
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task MainWindow_queue_item_has_remove_button()
+    {
+        var window = new MainWindow(CreateUseCase(1));
+        var tempCbz = CreateTempCbz();
+
+        try
+        {
+            await window.SelectArchiveAsync(tempCbz);
+
+            window.Show();
+            window.Measure(new Avalonia.Size(720, 520));
+            window.Arrange(new Avalonia.Rect(0, 0, 720, 520));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+            var queue = window.FindControl<ItemsControl>("QueueList")!;
+            var container = queue.ContainerFromIndex(0);
+            Assert.NotNull(container);
+            Assert.NotNull(container!.FindDescendantOfType<Button>());
+        }
+        finally
+        {
+            File.Delete(tempCbz);
         }
     }
 

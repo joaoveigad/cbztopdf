@@ -23,8 +23,12 @@ public class ZipComicArchiveReaderTests
 
             Assert.Equal(path, archive.FilePath);
             Assert.Equal(3, archive.PageCount);
-            Assert.Equal(new[] { "page1.png", "page2.png", "page10.png" }, archive.Pages.Select(p => p.FileName));
-            Assert.Equal(new[] { 1, 2, 3 }, archive.Pages.Select(p => p.Number));
+            Assert.Equal("page1.png", archive.Pages[0].FileName);
+            Assert.Equal("page2.png", archive.Pages[1].FileName);
+            Assert.Equal("page10.png", archive.Pages[2].FileName);
+            Assert.Equal(1, archive.Pages[0].Number);
+            Assert.Equal(2, archive.Pages[1].Number);
+            Assert.Equal(3, archive.Pages[2].Number);
             Assert.Equal(new byte[] { 3 }, archive.Pages[0].ImageData);
         }
         finally
@@ -50,9 +54,12 @@ public class ZipComicArchiveReaderTests
             var archive = await _reader.ReadAsync(path);
 
             Assert.Equal(4, archive.PageCount);
-            Assert.Equal(
-                new[] { "1.jpg", "3.webp", "cover.jpeg", "folder/2.bmp" },
-                archive.Pages.Select(p => p.FileName));
+            var expected = new[] { "1.jpg", "3.webp", "cover.jpeg", "folder/2.bmp" };
+            Assert.Equal(expected.Length, archive.Pages.Count);
+            for (var i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i], archive.Pages[i].FileName);
+            }
         }
         finally
         {

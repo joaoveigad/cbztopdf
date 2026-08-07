@@ -27,10 +27,17 @@ public sealed class ZipComicArchiveReader : IComicArchiveReader
         {
             using var archive = ZipFile.OpenRead(archivePath);
 
-            var entries = archive.Entries
-                .Where(IsImageEntry)
-                .OrderBy(e => e.FullName, StringComparison.OrdinalIgnoreCase.WithNaturalSort())
-                .ToList();
+            var entries = new List<ZipArchiveEntry>();
+            for (var i = 0; i < archive.Entries.Count; i++)
+            {
+                if (IsImageEntry(archive.Entries[i]))
+                {
+                    entries.Add(archive.Entries[i]);
+                }
+            }
+
+            entries.Sort((a, b) =>
+                StringComparison.OrdinalIgnoreCase.WithNaturalSort().Compare(a.FullName, b.FullName));
 
             if (entries.Count == 0)
             {
@@ -69,9 +76,21 @@ public sealed class ZipComicArchiveReader : IComicArchiveReader
     private static bool IsImageEntry(ZipArchiveEntry entry)
     {
         var name = entry.Name;
+        var extension = Path.GetExtension(name).ToLowerInvariant();
+
+        var supported = false;
+        for (var i = 0; i < SupportedExtensions.Length; i++)
+        {
+            if (SupportedExtensions[i] == extension)
+            {
+                supported = true;
+                break;
+            }
+        }
+
         return name.Length > 0
             && !name.StartsWith('.')
             && !name.StartsWith("._", StringComparison.Ordinal)
-            && SupportedExtensions.Contains(Path.GetExtension(name).ToLowerInvariant());
+            && supported;
     }
 }

@@ -4,7 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         x:Class="PagePdf.UI.MainWindow"
-        Title="PagePdf"
+        Title="File Converter"
         Width="720"
         Height="520"
         MinWidth="560"
@@ -42,18 +42,97 @@
                                  ShowProgressText="False" />
 				</DockPanel>
 
-				<ItemsControl Name="QueueList"
-                              Margin="0,4,0,0"
-                              FontSize="12"
-                              IsVisible="False">
-					<ItemsControl.ItemTemplate>
-						<DataTemplate>
-							<TextBlock Text="{Binding}"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                       VerticalAlignment="Center" />
-						</DataTemplate>
-					</ItemsControl.ItemTemplate>
-				</ItemsControl>
+				<StackPanel Name="QueuePanel"
+                            Margin="0,4,0,0"
+                            IsVisible="False">
+					<StackPanel.Styles>
+						<Style Selector="Border.badge">
+							<Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+						</Style>
+						<Style Selector="Border.badge TextBlock">
+							<Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+						</Style>
+						<Style Selector="Border.badge.done">
+							<Setter Property="Background" Value="#D1FAE5" />
+						</Style>
+						<Style Selector="Border.badge.done TextBlock">
+							<Setter Property="Foreground" Value="#065F46" />
+						</Style>
+						<Style Selector="Border.badge.failed">
+							<Setter Property="Background" Value="#FEE2E2" />
+						</Style>
+						<Style Selector="Border.badge.failed TextBlock">
+							<Setter Property="Foreground" Value="#991B1B" />
+						</Style>
+						<Style Selector="Border.badge.converting">
+							<Setter Property="Background" Value="#FEF3C7" />
+						</Style>
+						<Style Selector="Border.badge.converting TextBlock">
+							<Setter Property="Foreground" Value="#92400E" />
+						</Style>
+					</StackPanel.Styles>
+
+					<DockPanel Margin="0,0,0,4">
+						<TextBlock Text="Queue"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" />
+						<Button Name="ClearQueueButton"
+                                DockPanel.Dock="Right"
+                                Content="Clear"
+                                Classes="subtle"
+                                Click="ClearQueueButton_Click" />
+					</DockPanel>
+
+					<ScrollViewer MaxHeight="150"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+						<ItemsControl Name="QueueList"
+                                      x:CompileBindings="False"
+                                      FontSize="12">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate>
+									<Border Background="{DynamicResource CardBackgroundBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="6"
+                                            Padding="10,5"
+                                            Margin="0,2">
+										<DockPanel LastChildFill="True">
+											<Button Name="RemoveButton"
+                                                    Classes="icon"
+                                                    DockPanel.Dock="Right"
+                                                    Content="✕"
+                                                    ToolTip.Tip="Remove from queue"
+                                                    Click="RemoveQueueItem_Click" />
+											<Border Name="StatusBadge"
+                                                    Classes="badge"
+                                                    Classes.queued="{Binding IsQueued}"
+                                                    Classes.done="{Binding IsDone}"
+                                                    Classes.failed="{Binding IsFailed}"
+                                                    Classes.converting="{Binding IsConverting}"
+                                                    DockPanel.Dock="Right"
+                                                    CornerRadius="8"
+                                                    Padding="8,2"
+                                                    Margin="0,0,8,0"
+                                                    VerticalAlignment="Center">
+												<TextBlock Text="{Binding Status}"
+                                                           FontSize="11" />
+											</Border>
+											<TextBlock Text="{Binding FileName}"
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center" />
+										</DockPanel>
+									</Border>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+					</ScrollViewer>
+				</StackPanel>
 			</DockPanel>
 		</Border>
 

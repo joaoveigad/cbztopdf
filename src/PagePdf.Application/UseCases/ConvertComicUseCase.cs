@@ -59,7 +59,18 @@ public sealed class ConvertComicUseCase
         }
 
         var extension = Path.GetExtension(request.ArchivePath).ToLowerInvariant();
-        if (!SupportedExtensions.Contains(extension))
+
+        var supported = false;
+        for (var i = 0; i < SupportedExtensions.Length; i++)
+        {
+            if (SupportedExtensions[i] == extension)
+            {
+                supported = true;
+                break;
+            }
+        }
+
+        if (!supported)
         {
             throw new ComicArchiveException(
                 $"Extensão '{extension}' não suportada. Use: {string.Join(" ou ", SupportedExtensions)}");
