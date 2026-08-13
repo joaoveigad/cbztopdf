@@ -4,4 +4,5 @@ obj/
 .vs/
 todo.md
 todo.txt
-CHANGELOG.md
+release/
+*.zip

@@ -219,7 +219,7 @@ public partial class MainWindow : Window
         var count = 0;
         for (var i = 0; i < _queue.Count; i++)
         {
-            if (_queue[i].Status != "Done")
+            if (_queue[i].Status != "done")
             {
                 count++;
             }
@@ -233,7 +233,7 @@ public partial class MainWindow : Window
         var pending = new List<QueueItem>();
         for (var i = 0; i < _queue.Count; i++)
         {
-            if (_queue[i].Status != "Done")
+            if (_queue[i].Status != "done")
             {
                 pending.Add(_queue[i]);
             }
@@ -536,7 +536,7 @@ public partial class MainWindow : Window
 
     internal sealed class QueueItem(string archivePath) : INotifyPropertyChanged
     {
-        private string _status = "Queued";
+        private string _status = "queued";
 
         public string ArchivePath { get; } = archivePath;
 
