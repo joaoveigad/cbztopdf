@@ -220,6 +220,26 @@
 
 				</Border>
 
+				<StackPanel Orientation="Horizontal"
+                            Spacing="8"
+                            HorizontalAlignment="Center">
+					<TextBlock Text="Output folder:"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               VerticalAlignment="Center" />
+					<Button Name="DefaultFolderButton"
+                            Classes="subtle"
+                            Content="Not selected"
+                            Click="ChangeDefaultFolder_Click"
+                            ToolTip.Tip="Current default output folder. Click to change." />
+					<Button Name="ChangeFolderButton"
+                            Classes="subtle"
+                            Padding="8,4"
+                            Content="&#x2026;"
+                            ToolTip.Tip="Select a new default output folder"
+                            Click="ChangeDefaultFolder_Click" />
+				</StackPanel>
+
 				<TextBlock Text="The output PDF keeps the original page order and image quality."
                            FontSize="12"
                            Foreground="{DynamicResource TextMutedBrush}"

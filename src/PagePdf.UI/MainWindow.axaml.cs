@@ -13,21 +13,23 @@ namespace PagePdf.UI;
 public partial class MainWindow : Window
 {
     private readonly ConvertComicUseCase _useCase;
-    private readonly List<QueueItem> _queue = [];
+    private readonly List<QueueItem> _queue = new List<QueueItem>();
     private bool _isConverting;
-
+    private string defaultPath = string.Empty;
+                
     internal Func<string, string, Task> ShowError { get; set; } = default!;
 
     public MainWindow()
         : this(CreateDefaultUseCase())
     {
-    }
+    }   
 
     public MainWindow(ConvertComicUseCase useCase)
     {
         _useCase = useCase;
         ShowError = ShowErrorAsync;
         InitializeComponent();
+        UpdateDefaultFolderUi();
     }
 
     private static ConvertComicUseCase CreateDefaultUseCase()
@@ -217,7 +219,7 @@ public partial class MainWindow : Window
         var count = 0;
         for (var i = 0; i < _queue.Count; i++)
         {
-            if (_queue[i].Status != "done")
+            if (_queue[i].Status != "Done")
             {
                 count++;
             }
@@ -231,13 +233,13 @@ public partial class MainWindow : Window
         var pending = new List<QueueItem>();
         for (var i = 0; i < _queue.Count; i++)
         {
-            if (_queue[i].Status != "done")
+            if (_queue[i].Status != "Done")
             {
                 pending.Add(_queue[i]);
             }
         }
 
-        return pending;
+        return pending; 
     }
 
     private bool HasPendingWork()
@@ -270,38 +272,82 @@ public partial class MainWindow : Window
         string? folder = null;
         string? singleOutput = null;
 
-        if (pending.Count == 1)
+        if (string.IsNullOrEmpty(defaultPath))
         {
-            var defaultName = Path.GetFileNameWithoutExtension(pending[0].ArchivePath) + ".pdf";
-            var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            if (pending.Count == 1)
             {
-                Title = "Export PDF as",
-                SuggestedFileName = defaultName,
-                DefaultExtension = "pdf",
-                FileTypeChoices =
-                [
-                    new FilePickerFileType("PDF documents") { Patterns = ["*.pdf"] },
-                ],
-            });
+                var defaultName = Path.GetFileNameWithoutExtension(pending[0].ArchivePath) + ".pdf";
+                var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Export PDF as",
+                    SuggestedFileName = defaultName,
+                    DefaultExtension = "pdf",
+                    FileTypeChoices =
+                    [
+                        new FilePickerFileType("PDF documents") { Patterns = ["*.pdf"] },
+                    ],
+                });
 
-            singleOutput = file?.TryGetLocalPath();
-            if (singleOutput is null)
+                singleOutput = file?.TryGetLocalPath();
+                if (singleOutput is null)
+                {
+                    return;
+                }
+
+                defaultPath = singleOutput;
+                UpdateDefaultFolderUi();
+            }
+            else
             {
-                return;
+                var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                {
+                    Title = "Select output folder",
+                    AllowMultiple = false,
+                });
+
+                folder = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+                if (folder is null)
+                {
+                    return;
+                }
+
+                defaultPath = folder;
+                UpdateDefaultFolderUi();
+            }
+        }
+        else if (pending.Count == 1)
+        {
+            if (DefaultPathIsFolder(defaultPath))
+            {
+                folder = defaultPath;
+            }
+            else
+            {
+                singleOutput = defaultPath;
             }
         }
         else
         {
-            var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            if (DefaultPathIsFolder(defaultPath))
             {
-                Title = "Select output folder",
-                AllowMultiple = false,
-            });
+                folder = defaultPath;
+            }
+            else
+            {
+                var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                {
+                    Title = "Select output folder",
+                    AllowMultiple = false,
+                });
 
-            folder = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
-            if (folder is null)
-            {
-                return;
+                folder = folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+                if (folder is null)
+                {
+                    return;
+                }
+
+                defaultPath = folder;
+                UpdateDefaultFolderUi();
             }
         }
 
@@ -390,7 +436,75 @@ public partial class MainWindow : Window
         OpenButton.IsEnabled = !busy;
         ClearQueueButton.IsEnabled = !busy && _queue.Count > 0;
         ConvertButton.IsEnabled = !busy && HasPendingWork();
+        DefaultFolderButton.IsEnabled = !busy;
+        ChangeFolderButton.IsEnabled = !busy;
     }
+
+    private async void ChangeDefaultFolder_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_isConverting)
+        {
+            return;
+        }
+
+        var topLevel = GetTopLevel(this);
+        if (topLevel is null)
+        {
+            return;
+        }
+
+        var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Select default output folder",
+            AllowMultiple = false,
+        });
+
+        if (folders.Count == 0)
+        {
+            return;
+        }
+
+        var folder = folders[0].TryGetLocalPath();
+        if (folder is null)
+        {
+            return;
+        }
+
+        SetDefaultFolder(folder);
+    }
+
+    internal void SetDefaultFolder(string folder)
+    {
+        defaultPath = folder;
+        UpdateDefaultFolderUi();
+    }
+
+    private void UpdateDefaultFolderUi()
+    {
+        DefaultFolderButton.Content = DefaultFolderName();
+    }
+
+    private string DefaultFolderName()
+    {
+        if (string.IsNullOrEmpty(defaultPath))
+        {
+            return "Not selected";
+        }
+
+        var dir = DefaultPathIsFolder(defaultPath)
+            ? defaultPath
+            : Path.GetDirectoryName(defaultPath);
+
+        if (string.IsNullOrEmpty(dir))
+        {
+            return defaultPath;
+        }
+
+        return Path.GetFileName(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+    }
+
+    private static bool DefaultPathIsFolder(string path)
+        => !Path.HasExtension(path) || Directory.Exists(path);
 
     private async Task ShowErrorAsync(string title, string message)
     {
@@ -422,7 +536,7 @@ public partial class MainWindow : Window
 
     internal sealed class QueueItem(string archivePath) : INotifyPropertyChanged
     {
-        private string _status = "queued";
+        private string _status = "Queued";
 
         public string ArchivePath { get; } = archivePath;
 

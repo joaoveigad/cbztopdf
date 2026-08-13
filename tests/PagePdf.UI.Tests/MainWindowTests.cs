@@ -22,6 +22,36 @@ public class MainWindowTests
     }
 
     [AvaloniaFact]
+    public void MainWindow_has_default_folder_controls()
+    {
+        var window = new MainWindow(CreateUseCase(1));
+
+        Assert.NotNull(window.FindControl<Button>("DefaultFolderButton"));
+        Assert.NotNull(window.FindControl<Button>("ChangeFolderButton"));
+    }
+
+    [AvaloniaFact]
+    public void MainWindow_default_folder_starts_unset()
+    {
+        var window = new MainWindow(CreateUseCase(1));
+
+        Assert.Equal("Not selected",
+            window.FindControl<Button>("DefaultFolderButton")!.Content);
+    }
+
+    [AvaloniaFact]
+    public void MainWindow_set_default_folder_updates_button()
+    {
+        var window = new MainWindow(CreateUseCase(1));
+        var tempDir = Path.GetTempPath();
+
+        window.SetDefaultFolder(tempDir);
+
+        var expected = Path.GetFileName(tempDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        Assert.Equal(expected, window.FindControl<Button>("DefaultFolderButton")!.Content);
+    }
+
+    [AvaloniaFact]
     public async Task MainWindow_select_archive_enables_export()
     {
         var window = new MainWindow(CreateUseCase(1));
